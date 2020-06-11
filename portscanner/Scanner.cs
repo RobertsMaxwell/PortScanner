@@ -1,35 +1,73 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using System.Net.NetworkInformation;
 using System.Threading;
 using System.Net.Sockets;
+using System.Drawing;
+using System.Windows.Forms;
 
 namespace PortScanner
 {
     class Scanner
     {
-        static void Main(string[] args)
+        public static bool scanning = false;
+        public static int timeoutMS = 100;
+
+        [STAThread]
+        public static void Main()
         {
-            TcpClient client = new TcpClient();
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new Form1());
+        }
 
-            Console.Write("Enter an IP Address:");
-            string address = Console.ReadLine();
-            
-            Console.Write("Enter a port to be scanned:");
-            int port = Convert.ToInt32(Console.ReadLine());
+        public static IPInfo[] Scan(string[] address, int[] port)
+        {
+            List<IPInfo> returnList = new List<IPInfo>();
 
-            try
+            scanning = true;
+
+            for (int y = 0; y < address.Length; y++)
             {
-                client.Connect(address, port);
-                Console.WriteLine($"Port {port} on {address} is open");
+                for (int i = 0; i < port.Length; i++)
+                {
+                    TcpClient client = new TcpClient();
+                    try
+                    {
+                        var result = client.BeginConnect(address[y], port[i], null, null);
+
+                        if (result.AsyncWaitHandle.WaitOne(timeoutMS))
+                        {
+                            returnList.Add(new IPInfo(address[y], port[i].ToString(), "True"));
+                        } else
+                        {
+                            returnList.Add(new IPInfo(address[y], port[i].ToString(), "False"));
+                        }
+                        
+                    }
+                    catch (Exception)
+                    {
+                        returnList.Add(new IPInfo(address[y], port[i].ToString(), "False"));
+                    }
+                }
             }
-            catch (Exception)
+
+            scanning = false;
+            return returnList.ToArray();
+        }
+
+        public struct IPInfo
+        {
+            public IPInfo(string address, string port, string status)
             {
-                Console.WriteLine($"Port {port} on {address} is closed");
+                Address = address;
+                Port = port;
+                Status = status;
             }
+
+            public string Address { get; }
+            public string Port { get; }
+            public string Status { get; }
         }
     }
 }
