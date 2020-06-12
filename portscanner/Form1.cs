@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using static PortScanner.Scanner;
 
 namespace PortScanner
@@ -22,6 +23,14 @@ namespace PortScanner
         int[] ports;
 
         string localIP;
+
+        public int barMaximum = 100;
+
+        public int barProgress
+        {
+            get { return barProgress; }
+            set { UpdateProgress(barProgress, barMaximum); }
+        }
 
         public Form1()
         {
@@ -43,16 +52,18 @@ namespace PortScanner
             PortStart_Leave();
         }
 
+        //Initiate Scan
         private void ScanStart_Click(object sender, EventArgs e)
         {
             if (!scanning)
             {
                 try
                 {
+                    Scanner scanner = new Scanner();
                     var addresses = IPAddress_Update(IPAddressStart.Text);
                     var ports = Port_Update(PortStart.Text);
 
-                    PopulateList(Scan(addresses, ports));
+                    PopulateList(Scan(addresses, ports, progressBar, ETA));
                 }
                 catch (ArgumentException err)
                 {
@@ -61,6 +72,7 @@ namespace PortScanner
             }
         }
 
+        //Verify that it is a valid IP range and return a list of ips
         private string[] IPAddress_Update(string ipString)
         {
             List<string> ipStringList = new List<string>();
@@ -122,6 +134,7 @@ namespace PortScanner
             throw new ArgumentException("Please Input a valid IPv4 Address");
         }
 
+        //Verify that it is a valid port range and return a list of ports
         private int[] Port_Update(string portString)
         {
             List<int> portList = new List<int>();
@@ -252,15 +265,16 @@ namespace PortScanner
         private void PortStart_Enter(object sender, EventArgs e) { PortStart_Enter(); }
         private void PortStart_Leave(object sender, EventArgs e) { PortStart_Leave(); }
 
+        //timeout dropdown
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
             timeoutMS = Convert.ToInt32(comboBox1.SelectedItem);
         }
 
+        // scan LAN checkbox
+        string textBefore = "";
         private void checkBox2_CheckedChanged(object sender, EventArgs e)
         {
-            string textBefore = "";
-
             if (checkBox2.Checked)
             {
                 if (IPAddressStart.Text != addressExampleText)
@@ -285,6 +299,12 @@ namespace PortScanner
                 IPAddressStart.Text = textBefore;
                 ScanStart.Focus();
             }
+        }
+
+        //progress bar update
+        public void UpdateProgress(int progress, int goal)
+        {
+            progressBar.Value = (int)((float)progress / goal * 100);
         }
     }
 }
